@@ -83,8 +83,11 @@
             border-top: 1px solid rgba(255,255,255,0.1);
         }
         .lock-badge {
-            position: absolute; top: 10px; right: 25px;
-            font-size: 10px;
+            position: absolute;
+            top: 5px;
+            right: 15px; /* Điều chỉnh lại để nó nằm trên góc icon */
+            font-size: 14px; /* Tăng kích cỡ ổ khóa cho dễ nhìn */
+            z-index: 5;
         }
         .taskbar-time { margin-left: auto; color: white; font-size: 12px; text-align: right; line-height: 1.3; }
     </style>
@@ -128,8 +131,11 @@
             shortcuts.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = 'icon dynamic-icon';
+                // ĐOẠN QUAN TRỌNG: Kiểm tra nếu có password thì mới tạo thẻ lock-badge
+                const lockHtml = item.password ? '<div class="lock-badge">🔒</div>' : '';
                 div.innerHTML = `
                    <div onclick="checkPassAndOpen(${index})">
+                   ${lockHtml}
                    <img src="${FOLDER_ICON}">
                    <span>${item.name}</span>
                    </div>
