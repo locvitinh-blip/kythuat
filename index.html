@@ -82,7 +82,10 @@
             box-sizing: border-box; z-index: 100;
             border-top: 1px solid rgba(255,255,255,0.1);
         }
-
+        .lock-badge {
+            position: absolute; top: 10px; right: 25px;
+            font-size: 10px;
+        }
         .taskbar-time { margin-left: auto; color: white; font-size: 12px; text-align: right; line-height: 1.3; }
     </style>
 </head>
@@ -126,11 +129,11 @@
                 const div = document.createElement('div');
                 div.className = 'icon dynamic-icon';
                 div.innerHTML = `
-                    <div onclick="window.open('${item.link}', '_blank')" style="display:flex; flex-direction:column; align-items:center;">
-                        <img src="${FOLDER_ICON}" alt="Folder">
-                        <span>${item.name}</span>
-                    </div>
-                    <button class="delete-btn" onclick="deleteIcon(${index})">✕</button>
+                   <div onclick="checkPassAndOpen(${index})">
+                   <img src="${FOLDER_ICON}">
+                   <span>${item.name}</span>
+                   </div>
+                   <button class="delete-btn" onclick="deleteIcon(${index})">✕</button>
                 `;
                 container.insertBefore(div, addBtn);
             });
@@ -139,9 +142,13 @@
         function addNewIcon() {
             const name = prompt("Nhập tên thư mục:");
             const link = prompt("Dán link Google Drive:");
+            // Thêm dòng này để hỏi mật khẩu
+            const password = prompt("Đặt mật khẩu (Để trống nếu không cần):");
+    
             if (name && link) {
-                shortcuts.push({ name, link });
-                saveAndRender();
+               // Thêm trường password vào object
+               shortcuts.push({ name, link, password: password || null });
+               saveAndRender();
             }
         }
 
@@ -158,7 +165,19 @@
             const date = now.toLocaleDateString('vi-VN');
             document.getElementById('clock').innerHTML = `${time}<br>${date}`;
         }
-
+        function checkPassAndOpen(index) {
+            const item = shortcuts[index];
+            if (item.password) {
+                const inputPass = prompt("Mục này được bảo vệ. Vui lòng nhập mật khẩu:");
+                if (inputPass === item.password) {
+                   window.open(item.link, '_blank');
+                } else if (inputPass !== null) {
+                    alert("Sai mật khẩu!");
+                }
+            } else {
+                window.open(item.link, '_blank');
+            }
+        }
         setInterval(updateClock, 1000);
         updateClock();
         renderIcons();
