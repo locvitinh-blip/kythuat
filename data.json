@@ -3,5 +3,10 @@
     "name": "test",
     "link": "http://youtube.com",
     "password": null
+  },
+  {
+    "name": "test",
+    "link": "https://youtube.com",
+    "password": "123"
   }
 ]
