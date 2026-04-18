@@ -103,7 +103,7 @@
     </div>
 
     <div class="taskbar">
-        <div style="color: white; font-weight: bold; font-size: 14px;">PHẦN MỀM TỰ LÀM</div>
+        <div style="color: white; font-weight: bold; font-size: 14px;">WINDOWS 90 PRO</div>
         <div id="clock" class="taskbar-time"></div>
     </div>
 
@@ -209,10 +209,26 @@
             }
         }
 
-        function deleteIcon(index) {
-            if(confirm("Bạn muốn xóa mục này vĩnh viễn trên GitHub?")) {
-                shortcuts.splice(index, 1);
-                saveDataToGithub(); // Cập nhật lại GitHub
+        // Bạn có thể đổi '1234' thành mật khẩu riêng của bạn
+        const DELETE_PASSWORD = "1234"; 
+
+        async function deleteIcon(index) {
+            const item = shortcuts[index];
+    
+            // Bước 1: Hiện bảng hỏi xác nhận cơ bản
+            if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn mục "${item.name}" trên GitHub không?`)) {
+        
+                // Bước 2: Yêu cầu nhập mật khẩu để xác thực quyền xóa
+                const confirmPass = prompt("Vui lòng nhập mật khẩu xác nhận để xóa:");
+        
+                if (confirmPass === DELETE_PASSWORD) {
+                    // Nếu đúng mật khẩu, tiến hành xóa trong mảng và đẩy lên GitHub
+                    shortcuts.splice(index, 1);
+                    await saveDataToGithub(); 
+                } else if (confirmPass !== null) {
+                    // Thông báo nếu nhập sai mật khẩu
+                    alert("Mật khẩu xác nhận xóa không chính xác!");
+                }
             }
         }
 
