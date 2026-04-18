@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "name": "test",
+    "link": "http://youtube.com",
+    "password": null
+  }
+]
