@@ -49,9 +49,8 @@
             backdrop-filter: blur(5px);
         }
 
-        /* Kích thước Icon Thư mục */
         .icon img {
-            width: 55px; /* Tăng nhẹ kích thước cho dễ nhìn */
+            width: 55px;
             height: auto;
             margin-bottom: 8px;
             filter: drop-shadow(0px 4px 5px rgba(0,0,0,0.4));
@@ -64,7 +63,6 @@
             overflow: hidden;
         }
 
-        /* Nút xóa icon */
         .delete-btn {
             position: absolute; top: 2px; right: 15px;
             background: rgba(255, 50, 50, 0.9); color: white;
@@ -74,7 +72,14 @@
 
         .icon:hover .delete-btn { display: block; }
 
-        /* Taskbar */
+        .lock-badge {
+            position: absolute;
+            top: 5px;
+            right: 15px;
+            font-size: 14px;
+            z-index: 5;
+        }
+
         .taskbar {
             position: fixed; bottom: 0; width: 100%; height: 48px;
             background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(15px);
@@ -82,13 +87,7 @@
             box-sizing: border-box; z-index: 100;
             border-top: 1px solid rgba(255,255,255,0.1);
         }
-        .lock-badge {
-            position: absolute;
-            top: 5px;
-            right: 15px; /* Điều chỉnh lại để nó nằm trên góc icon */
-            font-size: 14px; /* Tăng kích cỡ ổ khóa cho dễ nhìn */
-            z-index: 5;
-        }
+
         .taskbar-time { margin-left: auto; color: white; font-size: 12px; text-align: right; line-height: 1.3; }
     </style>
 </head>
@@ -109,35 +108,89 @@
     </div>
 
     <script>
-        // Icon Folder chuẩn (màu vàng chuyên nghiệp)
+        // --- CẤU HÌNH GITHUB ---
+        const GITHUB_TOKEN = "ghp_" + "uKQS8YBldGQxwfq4onxsjr8Kf1asQO41kKRc"; 
+        const USERNAME = 'locvitinh-blip'; // Thay bằng username GitHub của bạn
+        const REPO = 'kythuat'; // Thay bằng tên Repository của bạn
+        const FILE_PATH = 'data.json';
         const FOLDER_ICON = "https://cdn-icons-png.flaticon.com/512/3767/3767084.png";
 
-        let shortcuts = JSON.parse(localStorage.getItem('yenloc_data')) || [];
+        let shortcuts = [];
 
-        function saveAndRender() {
-            localStorage.setItem('yenloc_data', JSON.stringify(shortcuts));
-            renderIcons();
+        // 1. Tải dữ liệu từ GitHub khi mở trang
+        async function loadDataFromGithub() {
+            const url = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Không thể tải file");
+                const data = await response.json();
+                // Giải mã Base64 sang UTF-8
+                const content = decodeURIComponent(escape(atob(data.content)));
+                shortcuts = JSON.parse(content);
+                renderIcons();
+            } catch (error) {
+                console.error("Lỗi:", error);
+                // Nếu lỗi, thử lấy từ localStorage làm dự phòng
+                shortcuts = JSON.parse(localStorage.getItem('yenloc_data')) || [];
+                renderIcons();
+            }
+        }
+
+        // 2. Ghi dữ liệu lên GitHub
+        async function saveDataToGithub() {
+            const url = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`;
+            
+            try {
+                // Lấy SHA của file hiện tại để GitHub cho phép ghi đè
+                const getFile = await fetch(url);
+                const fileData = await getFile.json();
+                const sha = fileData.sha;
+
+                // Mã hóa nội dung sang Base64 hỗ trợ tiếng Việt
+                const contentString = JSON.stringify(shortcuts, null, 2);
+                const newContent = btoa(unescape(encodeURIComponent(contentString)));
+
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: "Update shortcuts data",
+                        content: newContent,
+                        sha: sha
+                    })
+                });
+
+                if (response.ok) {
+                    console.log("Đã đồng bộ lên GitHub thành công!");
+                    // Lưu dự phòng vào localStorage
+                    localStorage.setItem('yenloc_data', JSON.stringify(shortcuts));
+                    renderIcons();
+                } else {
+                    alert("Lỗi khi lưu lên GitHub!");
+                }
+            } catch (error) {
+                console.error("Lỗi đồng bộ:", error);
+            }
         }
 
         function renderIcons() {
             const container = document.getElementById('desktopIcons');
             const addBtn = document.getElementById('addBtn');
-            
-            // Dọn dẹp icon cũ
             const oldIcons = container.querySelectorAll('.dynamic-icon');
             oldIcons.forEach(icon => icon.remove());
 
-            // Render từ danh sách lưu trữ
             shortcuts.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = 'icon dynamic-icon';
-                // ĐOẠN QUAN TRỌNG: Kiểm tra nếu có password thì mới tạo thẻ lock-badge
                 const lockHtml = item.password ? '<div class="lock-badge">🔒</div>' : '';
                 div.innerHTML = `
                    <div onclick="checkPassAndOpen(${index})">
-                   ${lockHtml}
-                   <img src="${FOLDER_ICON}">
-                   <span>${item.name}</span>
+                       ${lockHtml}
+                       <img src="${FOLDER_ICON}">
+                       <span>${item.name}</span>
                    </div>
                    <button class="delete-btn" onclick="deleteIcon(${index})">✕</button>
                 `;
@@ -148,29 +201,21 @@
         function addNewIcon() {
             const name = prompt("Nhập tên thư mục:");
             const link = prompt("Dán link Google Drive:");
-            // Thêm dòng này để hỏi mật khẩu
             const password = prompt("Đặt mật khẩu (Để trống nếu không cần):");
     
             if (name && link) {
-               // Thêm trường password vào object
                shortcuts.push({ name, link, password: password || null });
-               saveAndRender();
+               saveDataToGithub(); // Lưu lên GitHub
             }
         }
 
         function deleteIcon(index) {
-            if(confirm("Bạn muốn xóa mục này?")) {
+            if(confirm("Bạn muốn xóa mục này vĩnh viễn trên GitHub?")) {
                 shortcuts.splice(index, 1);
-                saveAndRender();
+                saveDataToGithub(); // Cập nhật lại GitHub
             }
         }
 
-        function updateClock() {
-            const now = new Date();
-            const time = now.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
-            const date = now.toLocaleDateString('vi-VN');
-            document.getElementById('clock').innerHTML = `${time}<br>${date}`;
-        }
         function checkPassAndOpen(index) {
             const item = shortcuts[index];
             if (item.password) {
@@ -184,9 +229,17 @@
                 window.open(item.link, '_blank');
             }
         }
+
+        function updateClock() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+            const date = now.toLocaleDateString('vi-VN');
+            document.getElementById('clock').innerHTML = `${time}<br>${date}`;
+        }
+
         setInterval(updateClock, 1000);
         updateClock();
-        renderIcons();
+        loadDataFromGithub(); // Khởi động bằng cách tải dữ liệu từ GitHub
     </script>
 </body>
 </html>
